@@ -1,219 +1,495 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <title>배송 정보 입력</title>
-    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <style>
-      .delivery-toggle {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 16px;
-      }
-      .toggle-btn {
-        flex: 1;
-        padding: 12px;
-        font-size: 15px;
-        font-weight: bold;
-        border: 2px solid #dee2e6;
-        border-radius: 10px;
-        background: #fff;
-        color: #888;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      .toggle-btn.active-pickup {
-        border-color: #198754;
-        background: #d1e7dd;
-        color: #198754;
-      }
-      .toggle-btn.active-delivery {
-        border-color: #0d6efd;
-        background: #cfe2ff;
-        color: #0d6efd;
-      }
-    </style>
-  </head>
-  <body class="bg-light">
-    <div class="container py-4">
-      <h4 class="text-center mb-4">배송 정보 입력</h4>
-      <form id="orderForm" class="bg-white p-4 rounded shadow-sm" novalidate>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>도봉 베이비하우스 배송 정보 입력</title>
+  <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream: #fdf8f3;
+      --blush: #f5e6d8;
+      --rose: #e8c4a8;
+      --terracotta: #c97b5a;
+      --deep: #7a4a35;
+      --text: #3d2b1f;
+      --muted: #a08070;
+      --white: #ffffff;
+      --success: #5a9e7a;
+      --danger: #c0604a;
+      --disabled-bg: #ede8e3;
+      --disabled-text: #b0a09a;
+      --shadow: 0 8px 32px rgba(122, 74, 53, 0.10);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
 
-        <input
-          type="text"
-          class="form-control mb-3"
-          id="name"
-          placeholder="고객명"
-          autocomplete="off"
-        />
-        <input
-          type="tel"
-          class="form-control mb-3"
-          id="phone"
-          placeholder="연락처"
-          autocomplete="off"
-        />
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        <!-- 수령 방법 선택 버튼 -->
-        <div class="delivery-toggle">
-          <button type="button" class="toggle-btn" id="btnPickup" onclick="selectType('pickup')">🏪 매장수령</button>
-          <button type="button" class="toggle-btn" id="btnDelivery" onclick="selectType('delivery')">🚚 집으로 배송</button>
+    html, body {
+      min-height: 100%;
+      background: var(--cream);
+      font-family: 'Noto Sans KR', sans-serif;
+      color: var(--text);
+    }
+
+    /* Decorative background blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    body::before {
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, #f5d9c4 0%, transparent 70%);
+      top: -120px; right: -100px;
+    }
+    body::after {
+      width: 320px; height: 320px;
+      background: radial-gradient(circle, #e8d5c0 0%, transparent 70%);
+      bottom: -80px; left: -80px;
+    }
+
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .header-badge {
+      display: inline-block;
+      background: var(--blush);
+      border: 1px solid var(--rose);
+      color: var(--terracotta);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: clamp(22px, 5vw, 30px);
+      font-weight: 700;
+      color: var(--deep);
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+    }
+
+    .header h1 span {
+      color: var(--terracotta);
+    }
+
+    .header p {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    /* Card */
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 28px;
+      animation: fadeUp 0.7s ease 0.1s both;
+    }
+
+    /* Form fields */
+    .field-group {
+      margin-bottom: 16px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 15px;
+      font-family: 'Noto Sans KR', sans-serif;
+      color: var(--text);
+      background: var(--cream);
+      border: 1.5px solid var(--blush);
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      -webkit-appearance: none;
+    }
+
+    .field-input::placeholder { color: var(--muted); font-weight: 300; }
+
+    .field-input:focus {
+      border-color: var(--terracotta);
+      box-shadow: 0 0 0 3px rgba(201, 123, 90, 0.12);
+      background: var(--white);
+    }
+
+    .field-input[disabled] {
+      background: var(--disabled-bg);
+      color: var(--disabled-text);
+      cursor: default;
+      border-color: #e0d8d2;
+    }
+
+    .field-input[readonly]:not([disabled]) {
+      cursor: pointer;
+      background: var(--cream);
+    }
+
+    .field-input[readonly]:not([disabled]):hover {
+      border-color: var(--terracotta);
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--blush);
+    }
+    .divider span {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Toggle buttons */
+    .toggle-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .toggle-btn {
+      padding: 14px 10px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Noto Sans KR', sans-serif;
+      border: 1.5px solid var(--blush);
+      border-radius: var(--radius-sm);
+      background: var(--cream);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      line-height: 1.3;
+    }
+
+    .toggle-btn .icon { font-size: 20px; }
+
+    .toggle-btn:hover {
+      border-color: var(--rose);
+      color: var(--terracotta);
+      background: var(--blush);
+    }
+
+    .toggle-btn.active-pickup {
+      border-color: var(--success);
+      background: #edf7f2;
+      color: var(--success);
+      box-shadow: 0 0 0 3px rgba(90, 158, 122, 0.10);
+    }
+
+    .toggle-btn.active-delivery {
+      border-color: var(--terracotta);
+      background: #fdf0e8;
+      color: var(--terracotta);
+      box-shadow: 0 0 0 3px rgba(201, 123, 90, 0.10);
+    }
+
+    /* Address section */
+    #addressSection {
+      display: none;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    /* Submit button */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      margin-top: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Noto Sans KR', sans-serif;
+      color: var(--white);
+      background: linear-gradient(135deg, var(--terracotta), var(--deep));
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(122, 74, 53, 0.25);
+    }
+
+    .submit-btn:hover:not([disabled]) {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(122, 74, 53, 0.30);
+    }
+
+    .submit-btn:active:not([disabled]) { transform: translateY(0); }
+
+    .submit-btn[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Messages */
+    .msg-success, .msg-error {
+      text-align: center;
+      margin-top: 14px;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+      animation: fadeUp 0.3s ease both;
+    }
+    .msg-success { background: #edf7f2; color: var(--success); border: 1px solid #b8dfc9; }
+    .msg-error   { background: #fdecea; color: var(--danger);  border: 1px solid #f0bcb4; }
+
+    /* Footer */
+    .footer {
+      margin-top: 20px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      animation: fadeUp 0.7s ease 0.2s both;
+    }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 400px) {
+      .card { padding: 24px 18px; }
+      .toggle-btn { font-size: 13px; padding: 12px 8px; }
+      .toggle-btn .icon { font-size: 18px; }
+    }
+
+    @media (min-width: 768px) {
+      .card { padding: 40px 40px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <div class="header">
+      <div class="header-badge">✦ Baby House</div>
+      <h1>도봉 베이비하우스<br><span>배송 정보 입력</span></h1>
+      <p>정확한 정보를 입력해 주시면 빠르게 처리해드립니다.</p>
+    </div>
+
+    <div class="card">
+      <form id="orderForm" novalidate>
+
+        <div class="field-group">
+          <label class="field-label" for="name">고객명</label>
+          <input class="field-input" type="text" id="name" placeholder="성함을 입력해주세요" autocomplete="off" />
         </div>
 
-        <!-- 주소 입력 영역 (기본 숨김) -->
-        <div id="addressSection" style="display: none;">
-          <input
-            type="text"
-            class="form-control mb-3"
-            id="roadAddress"
-            placeholder="도로명 주소 (클릭하여 검색)"
-            readonly
-            style="cursor: pointer; background-color: #fff;"
-          />
-          <input
-            type="text"
-            class="form-control mb-3"
-            id="detailAddress"
-            placeholder="상세 주소"
-            autocomplete="off"
-          />
+        <div class="field-group">
+          <label class="field-label" for="phone">연락처</label>
+          <input class="field-input" type="tel" id="phone" placeholder="010-0000-0000" autocomplete="off" />
         </div>
 
-        <button type="submit" id="submitBtn" class="btn btn-primary w-100">제출</button>
-        <div id="msg" class="text-success text-center mt-3" style="display: none;">
-          ✅ 제출 완료! 감사합니다.
+        <div class="divider"><span>수령 방법 선택</span></div>
+
+        <div class="toggle-group">
+          <button type="button" class="toggle-btn" id="btnPickup" onclick="selectType('pickup')">
+            <span class="icon">🏪</span>
+            매장수령
+          </button>
+          <button type="button" class="toggle-btn" id="btnDelivery" onclick="selectType('delivery')">
+            <span class="icon">🚚</span>
+            집으로 배송
+          </button>
         </div>
-        <div id="errMsg" class="text-danger text-center mt-3" style="display: none;">
-          ❌ 전송 실패. 다시 시도해주세요.
+
+        <div id="addressSection">
+          <div class="field-group">
+            <label class="field-label" for="roadAddress">도로명 주소</label>
+            <input class="field-input" type="text" id="roadAddress"
+              placeholder="클릭하여 주소를 검색해주세요" readonly />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="detailAddress">상세 주소</label>
+            <input class="field-input" type="text" id="detailAddress"
+              placeholder="동/호수 등 상세 주소" autocomplete="off" />
+          </div>
         </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">제출하기</button>
+
+        <div class="msg-success" id="msg">✅ 제출이 완료되었습니다. 감사합니다!</div>
+        <div class="msg-error" id="errMsg">❌ 전송에 실패했습니다. 다시 시도해주세요.</div>
+
       </form>
     </div>
 
-    <script>
-      let selectedType = null; // 'pickup' or 'delivery'
+    <div class="footer">도봉 베이비하우스 · 고객 정보는 배송 목적으로만 사용됩니다.</div>
 
-      function selectType(type) {
-        selectedType = type;
-        const section = document.getElementById("addressSection");
-        const roadAddress = document.getElementById("roadAddress");
-        const detailAddress = document.getElementById("detailAddress");
-        const btnPickup = document.getElementById("btnPickup");
-        const btnDelivery = document.getElementById("btnDelivery");
+  </div>
 
-        // 버튼 스타일 초기화
-        btnPickup.className = "toggle-btn";
-        btnDelivery.className = "toggle-btn";
+  <script>
+    let selectedType = null;
 
-        // 주소 영역 표시
-        section.style.display = "block";
+    function selectType(type) {
+      selectedType = type;
+      const section = document.getElementById("addressSection");
+      const roadAddress = document.getElementById("roadAddress");
+      const detailAddress = document.getElementById("detailAddress");
+      const btnPickup = document.getElementById("btnPickup");
+      const btnDelivery = document.getElementById("btnDelivery");
 
-        if (type === "pickup") {
-          btnPickup.classList.add("active-pickup");
-          roadAddress.value = "";
-          roadAddress.style.cursor = "default";
-          roadAddress.style.backgroundColor = "#e9ecef";
-          roadAddress.setAttribute("disabled", true);
-          detailAddress.value = "매장수령";
-          detailAddress.setAttribute("disabled", true);
-          detailAddress.style.backgroundColor = "#e9ecef";
-        } else {
-          btnDelivery.classList.add("active-delivery");
-          roadAddress.value = "";
-          roadAddress.style.cursor = "pointer";
-          roadAddress.style.backgroundColor = "#fff";
-          roadAddress.removeAttribute("disabled");
-          detailAddress.value = "";
-          detailAddress.removeAttribute("disabled");
-          detailAddress.style.backgroundColor = "#fff";
-        }
+      btnPickup.className = "toggle-btn";
+      btnDelivery.className = "toggle-btn";
+      section.style.display = "block";
+
+      if (type === "pickup") {
+        btnPickup.classList.add("active-pickup");
+        roadAddress.value = "";
+        roadAddress.setAttribute("disabled", true);
+        detailAddress.value = "매장수령";
+        detailAddress.setAttribute("disabled", true);
+      } else {
+        btnDelivery.classList.add("active-delivery");
+        roadAddress.value = "";
+        roadAddress.removeAttribute("disabled");
+        detailAddress.value = "";
+        detailAddress.removeAttribute("disabled");
       }
+    }
 
-      document.getElementById("roadAddress").addEventListener("click", function () {
-        if (selectedType === "delivery") {
-          new daum.Postcode({
-            oncomplete: function (data) {
-              document.getElementById("roadAddress").value = data.roadAddress;
-              document.getElementById("detailAddress").focus();
-            },
-          }).open();
-        }
-      });
-
-      function resetForm() {
-        document.getElementById("name").value = "";
-        document.getElementById("phone").value = "";
-        document.getElementById("roadAddress").value = "";
-        document.getElementById("detailAddress").value = "";
-        document.getElementById("addressSection").style.display = "none";
-        document.getElementById("btnPickup").className = "toggle-btn";
-        document.getElementById("btnDelivery").className = "toggle-btn";
-        document.getElementById("roadAddress").removeAttribute("disabled");
-        document.getElementById("roadAddress").style.cursor = "pointer";
-        document.getElementById("roadAddress").style.backgroundColor = "#fff";
-        document.getElementById("detailAddress").removeAttribute("disabled");
-        document.getElementById("detailAddress").style.backgroundColor = "#fff";
-        selectedType = null;
+    document.getElementById("roadAddress").addEventListener("click", function () {
+      if (selectedType === "delivery") {
+        new daum.Postcode({
+          oncomplete: function (data) {
+            document.getElementById("roadAddress").value = data.roadAddress;
+            document.getElementById("detailAddress").focus();
+          },
+        }).open();
       }
+    });
 
-      document.getElementById("orderForm").addEventListener("submit", function (e) {
-        e.preventDefault();
+    function resetForm() {
+      document.getElementById("name").value = "";
+      document.getElementById("phone").value = "";
+      document.getElementById("roadAddress").value = "";
+      document.getElementById("detailAddress").value = "";
+      document.getElementById("addressSection").style.display = "none";
+      document.getElementById("btnPickup").className = "toggle-btn";
+      document.getElementById("btnDelivery").className = "toggle-btn";
+      document.getElementById("roadAddress").removeAttribute("disabled");
+      document.getElementById("detailAddress").removeAttribute("disabled");
+      selectedType = null;
+    }
 
-        const name = document.getElementById("name").value.trim();
-        const phone = document.getElementById("phone").value.trim();
-        const roadAddress = document.getElementById("roadAddress").value.trim();
-        const detailAddress = document.getElementById("detailAddress").value.trim();
+    document.getElementById("orderForm").addEventListener("submit", function (e) {
+      e.preventDefault();
 
-        if (!name) { alert("고객명을 입력해주세요."); return; }
-        if (!phone) { alert("연락처를 입력해주세요."); return; }
-        if (!selectedType) { alert("매장수령 또는 집으로 배송을 선택해주세요."); return; }
-        if (selectedType === "delivery" && !roadAddress) { alert("도로명 주소를 검색해주세요."); return; }
-        if (selectedType === "delivery" && !detailAddress) { alert("상세 주소를 입력해주세요."); return; }
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const roadAddress = document.getElementById("roadAddress").value.trim();
+      const detailAddress = document.getElementById("detailAddress").value.trim();
 
-        const data = {
-          name,
-          phone,
-          roadAddress: selectedType === "pickup" ? "매장수령" : roadAddress,
-          detailAddress: selectedType === "pickup" ? "" : detailAddress,
-        };
+      const phoneDigits = phone.replace(/\D/g, '');
+      const phoneValid = /^(010|011|016|017|018|019)\d{7,8}$/.test(phoneDigits);
 
-        const submitBtn = document.getElementById("submitBtn");
-        submitBtn.disabled = true;
-        submitBtn.textContent = "제출 중...";
-        document.getElementById("msg").style.display = "none";
-        document.getElementById("errMsg").style.display = "none";
+      if (!name)        { alert("고객명을 입력해주세요."); return; }
+      if (!phone)       { alert("연락처를 입력해주세요."); return; }
+      if (!phoneValid)  { alert("올바른 휴대폰 번호를 입력해주세요.\n예) 010-1234-5678"); return; }
+      if (!selectedType){ alert("수령 방법을 선택해주세요."); return; }
+      if (selectedType === "delivery" && !roadAddress)   { alert("도로명 주소를 검색해주세요."); return; }
+      if (selectedType === "delivery" && !detailAddress) { alert("상세 주소를 입력해주세요."); return; }
 
-        fetch(
-          "https://script.google.com/macros/s/AKfycbx63OCuqwc4ezIJhA9U9yWY63zkbgYRMfywsykVpmmhRoOLugiabP8Pn47-TyOvvUQm/exec",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams(data),
-          }
-        )
-          .then((res) => res.text())
-          .then(() => {
-            document.getElementById("msg").style.display = "block";
-            resetForm();
-            setTimeout(() => {
-              submitBtn.disabled = false;
-              submitBtn.textContent = "제출";
-              document.getElementById("msg").style.display = "none";
-            }, 3000);
-          })
-          .catch(() => {
-            document.getElementById("errMsg").style.display = "block";
+      const data = {
+        name,
+        phone,
+        roadAddress: selectedType === "pickup" ? "매장수령" : roadAddress,
+        detailAddress: selectedType === "pickup" ? "" : detailAddress,
+      };
+
+      const submitBtn = document.getElementById("submitBtn");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "제출 중...";
+      document.getElementById("msg").style.display = "none";
+      document.getElementById("errMsg").style.display = "none";
+
+      fetch(
+        "https://script.google.com/macros/s/AKfycbx63OCuqwc4ezIJhA9U9yWY63zkbgYRMfywsykVpmmhRoOLugiabP8Pn47-TyOvvUQm/exec",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams(data),
+        }
+      )
+        .then((res) => res.text())
+        .then(() => {
+          document.getElementById("msg").style.display = "block";
+          resetForm();
+          setTimeout(() => {
             submitBtn.disabled = false;
-            submitBtn.textContent = "제출";
-          });
-      });
-    </script>
-  </body>
+            submitBtn.textContent = "제출하기";
+            document.getElementById("msg").style.display = "none";
+          }, 3000);
+        })
+        .catch(() => {
+          document.getElementById("errMsg").style.display = "block";
+          submitBtn.disabled = false;
+          submitBtn.textContent = "제출하기";
+        });
+    });
+  </script>
+</body>
 </html>
