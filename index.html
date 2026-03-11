@@ -12,92 +12,208 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <style>
+      .delivery-toggle {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .toggle-btn {
+        flex: 1;
+        padding: 12px;
+        font-size: 15px;
+        font-weight: bold;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        background: #fff;
+        color: #888;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .toggle-btn.active-pickup {
+        border-color: #198754;
+        background: #d1e7dd;
+        color: #198754;
+      }
+      .toggle-btn.active-delivery {
+        border-color: #0d6efd;
+        background: #cfe2ff;
+        color: #0d6efd;
+      }
+    </style>
   </head>
   <body class="bg-light">
     <div class="container py-4">
       <h4 class="text-center mb-4">배송 정보 입력</h4>
-      <form id="orderForm" class="bg-white p-4 rounded shadow-sm">
+      <form id="orderForm" class="bg-white p-4 rounded shadow-sm" novalidate>
+
         <input
           type="text"
           class="form-control mb-3"
           id="name"
           placeholder="고객명"
-          required
+          autocomplete="off"
         />
         <input
           type="tel"
           class="form-control mb-3"
           id="phone"
           placeholder="연락처"
-          required
+          autocomplete="off"
         />
-        <input
-          type="text"
-          class="form-control mb-3"
-          id="roadAddress"
-          placeholder="도로명 주소"
-          readonly
-          onclick="execDaumPostcode()"
-          required
-        />
-        <input
-          type="text"
-          class="form-control mb-3"
-          id="detailAddress"
-          placeholder="상세 주소"
-          required
-        />
-        <button type="submit" class="btn btn-primary w-100">제출</button>
-        <div
-          id="msg"
-          class="text-success text-center mt-3"
-          style="display: none"
-        >
-          제출 완료!
+
+        <!-- 수령 방법 선택 버튼 -->
+        <div class="delivery-toggle">
+          <button type="button" class="toggle-btn" id="btnPickup" onclick="selectType('pickup')">🏪 매장수령</button>
+          <button type="button" class="toggle-btn" id="btnDelivery" onclick="selectType('delivery')">🚚 집으로 배송</button>
+        </div>
+
+        <!-- 주소 입력 영역 (기본 숨김) -->
+        <div id="addressSection" style="display: none;">
+          <input
+            type="text"
+            class="form-control mb-3"
+            id="roadAddress"
+            placeholder="도로명 주소 (클릭하여 검색)"
+            readonly
+            style="cursor: pointer; background-color: #fff;"
+          />
+          <input
+            type="text"
+            class="form-control mb-3"
+            id="detailAddress"
+            placeholder="상세 주소"
+            autocomplete="off"
+          />
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn btn-primary w-100">제출</button>
+        <div id="msg" class="text-success text-center mt-3" style="display: none;">
+          ✅ 제출 완료! 감사합니다.
+        </div>
+        <div id="errMsg" class="text-danger text-center mt-3" style="display: none;">
+          ❌ 전송 실패. 다시 시도해주세요.
         </div>
       </form>
     </div>
 
     <script>
-      function execDaumPostcode() {
-        new daum.Postcode({
-          oncomplete: function (data) {
-            document.getElementById("roadAddress").value = data.roadAddress;
-            document.getElementById("detailAddress").focus();
-          },
-        }).open();
+      let selectedType = null; // 'pickup' or 'delivery'
+
+      function selectType(type) {
+        selectedType = type;
+        const section = document.getElementById("addressSection");
+        const roadAddress = document.getElementById("roadAddress");
+        const detailAddress = document.getElementById("detailAddress");
+        const btnPickup = document.getElementById("btnPickup");
+        const btnDelivery = document.getElementById("btnDelivery");
+
+        // 버튼 스타일 초기화
+        btnPickup.className = "toggle-btn";
+        btnDelivery.className = "toggle-btn";
+
+        // 주소 영역 표시
+        section.style.display = "block";
+
+        if (type === "pickup") {
+          btnPickup.classList.add("active-pickup");
+          roadAddress.value = "";
+          roadAddress.style.cursor = "default";
+          roadAddress.style.backgroundColor = "#e9ecef";
+          roadAddress.setAttribute("disabled", true);
+          detailAddress.value = "매장수령";
+          detailAddress.setAttribute("disabled", true);
+          detailAddress.style.backgroundColor = "#e9ecef";
+        } else {
+          btnDelivery.classList.add("active-delivery");
+          roadAddress.value = "";
+          roadAddress.style.cursor = "pointer";
+          roadAddress.style.backgroundColor = "#fff";
+          roadAddress.removeAttribute("disabled");
+          detailAddress.value = "";
+          detailAddress.removeAttribute("disabled");
+          detailAddress.style.backgroundColor = "#fff";
+        }
       }
 
-      document
-        .getElementById("orderForm")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-          const data = {
-            name: document.getElementById("name").value.trim(),
-            phone: document.getElementById("phone").value.trim(),
-            roadAddress: document.getElementById("roadAddress").value.trim(),
-            detailAddress: document
-              .getElementById("detailAddress")
-              .value.trim(),
-          };
+      document.getElementById("roadAddress").addEventListener("click", function () {
+        if (selectedType === "delivery") {
+          new daum.Postcode({
+            oncomplete: function (data) {
+              document.getElementById("roadAddress").value = data.roadAddress;
+              document.getElementById("detailAddress").focus();
+            },
+          }).open();
+        }
+      });
 
-          fetch(
-            "https://script.google.com/macros/s/AKfycbx63OCuqwc4ezIJhA9U9yWY63zkbgYRMfywsykVpmmhRoOLugiabP8Pn47-TyOvvUQm/exec",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body: new URLSearchParams(data),
-            }
-          )
-            .then((res) => res.text())
-            .then(() => {
-              document.getElementById("msg").style.display = "block";
-              document.getElementById("orderForm").reset();
-              document.getElementById("roadAddress").value = "";
-            })
-            .catch((err) => alert("전송 실패: " + err));
-        });
+      function resetForm() {
+        document.getElementById("name").value = "";
+        document.getElementById("phone").value = "";
+        document.getElementById("roadAddress").value = "";
+        document.getElementById("detailAddress").value = "";
+        document.getElementById("addressSection").style.display = "none";
+        document.getElementById("btnPickup").className = "toggle-btn";
+        document.getElementById("btnDelivery").className = "toggle-btn";
+        document.getElementById("roadAddress").removeAttribute("disabled");
+        document.getElementById("roadAddress").style.cursor = "pointer";
+        document.getElementById("roadAddress").style.backgroundColor = "#fff";
+        document.getElementById("detailAddress").removeAttribute("disabled");
+        document.getElementById("detailAddress").style.backgroundColor = "#fff";
+        selectedType = null;
+      }
+
+      document.getElementById("orderForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById("name").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+        const roadAddress = document.getElementById("roadAddress").value.trim();
+        const detailAddress = document.getElementById("detailAddress").value.trim();
+
+        if (!name) { alert("고객명을 입력해주세요."); return; }
+        if (!phone) { alert("연락처를 입력해주세요."); return; }
+        if (!selectedType) { alert("매장수령 또는 집으로 배송을 선택해주세요."); return; }
+        if (selectedType === "delivery" && !roadAddress) { alert("도로명 주소를 검색해주세요."); return; }
+        if (selectedType === "delivery" && !detailAddress) { alert("상세 주소를 입력해주세요."); return; }
+
+        const data = {
+          name,
+          phone,
+          roadAddress: selectedType === "pickup" ? "매장수령" : roadAddress,
+          detailAddress: selectedType === "pickup" ? "매장수령" : detailAddress,
+        };
+
+        const submitBtn = document.getElementById("submitBtn");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "제출 중...";
+        document.getElementById("msg").style.display = "none";
+        document.getElementById("errMsg").style.display = "none";
+
+        fetch(
+          "https://script.google.com/macros/s/AKfycbx63OCuqwc4ezIJhA9U9yWY63zkbgYRMfywsykVpmmhRoOLugiabP8Pn47-TyOvvUQm/exec",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams(data),
+          }
+        )
+          .then((res) => res.text())
+          .then(() => {
+            document.getElementById("msg").style.display = "block";
+            resetForm();
+            setTimeout(() => {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "제출";
+              document.getElementById("msg").style.display = "none";
+            }, 3000);
+          })
+          .catch(() => {
+            document.getElementById("errMsg").style.display = "block";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "제출";
+          });
+      });
     </script>
   </body>
 </html>
-
